@@ -15,11 +15,11 @@ async function main(args) {
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin'
     };
 
     // OPTIONS preflight isteği için yanıt
-    if (args.httpMethod === 'OPTIONS') {
+    if (args.__ow_method === 'options' || args.httpMethod === 'OPTIONS') {
       return {
         statusCode: 200,
         headers: corsHeaders,
@@ -77,7 +77,7 @@ async function main(args) {
         return {
           statusCode: 200,
           headers: {
-            'Content-Type': 'image/svg+xml',
+            'Content-Type': 'text/plain',
             ...corsHeaders
           },
           body: qrData

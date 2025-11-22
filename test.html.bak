@@ -235,7 +235,7 @@
         // Local test için:
         // const FUNCTION_URL = 'https://hammerhead-app-n7t2h.ondigitalocean.app/';
         // Local test için:
-        const FUNCTION_URL = 'https://hammerhead-app-n7t2h.ondigitalocean.app/';
+        const FUNCTION_URL = 'http://localhost:3000';
         // DigitalOcean için (deploy edildikten sonra):
         // const FUNCTION_URL = 'https://hammerhead-app-n7t2h.ondigitalocean.app/';
 
