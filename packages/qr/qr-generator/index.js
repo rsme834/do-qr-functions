@@ -15,7 +15,8 @@ async function main(args) {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin',
-    'Access-Control-Max-Age': '86400' // 24 saat
+    'Access-Control-Max-Age': '86400', // 24 saat
+    'Content-Type': 'application/json'
   };
 
   try {
@@ -24,10 +25,12 @@ async function main(args) {
     if (method.toLowerCase() === 'options') {
       return {
         statusCode: 204, // No Content
-        headers: corsHeaders,
-        body: ''
+        headers: corsHeaders
       };
     }
+
+    // Tüm diğer istekler için CORS header'larını ekle
+    const responseHeaders = { ...corsHeaders };
 
     // Parametreleri al
     const text = args.text || args.url;
@@ -38,7 +41,7 @@ async function main(args) {
     if (!text) {
       return {
         statusCode: 400,
-        headers: corsHeaders,
+        headers: responseHeaders,
         body: {
           error: 'Lütfen "text" veya "url" parametresi gönderin',
           example: { text: 'https://digitalocean.com' }
@@ -64,7 +67,7 @@ async function main(args) {
         qrData = await QRCode.toDataURL(text, options);
         return {
           statusCode: 200,
-          headers: corsHeaders,
+          headers: responseHeaders,
           body: {
             success: true,
             text: text,
@@ -79,8 +82,8 @@ async function main(args) {
         return {
           statusCode: 200,
           headers: {
-            'Content-Type': 'text/plain',
-            ...corsHeaders
+            ...responseHeaders,
+            'Content-Type': 'text/plain'
           },
           body: qrData
         };
@@ -90,8 +93,8 @@ async function main(args) {
         return {
           statusCode: 200,
           headers: {
-            'Content-Type': 'image/png',
-            ...corsHeaders
+            ...responseHeaders,
+            'Content-Type': 'image/png'
           },
           body: buffer.toString('base64')
         };
@@ -99,7 +102,7 @@ async function main(args) {
       default:
         return {
           statusCode: 400,
-          headers: corsHeaders,
+          headers: responseHeaders,
           body: {
             error: 'Geçersiz format. Kullanılabilir: base64, svg, png',
             receivedFormat: format
@@ -110,7 +113,7 @@ async function main(args) {
   } catch (error) {
     return {
       statusCode: 500,
-      headers: corsHeaders,
+      headers: responseHeaders,
       body: {
         error: 'QR kod oluşturulurken hata oluştu',
         details: error.message
