@@ -8,7 +8,7 @@ def generate_qr_code(url, text, size=300, format='base64', color='#000000', back
     if function_url is None:
         # Buraya kendi DigitalOcean Function URL'nizi yazın
         # Doğru format: https://$API_HOST/$NAMESPACE/$FUNCTION
-        function_url = ' '
+      function_url = "https://sea-lion-app-tat7o.ondigitalocean.app/qr/qr-generator"
     
     payload = {
         'text': text,
