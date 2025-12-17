@@ -3,32 +3,49 @@ const QRCode = require('qrcode');
 /**
  * DigitalOcean Function - QR Kod Oluşturucu
  *
- * Kullanım:
- * - text: QR koda dönüştürülecek metin/URL (zorunlu)
- * - size: QR kod boyutu (varsayılan: 300)
- * - format: Çıktı formatı: 'base64', 'png', 'svg' (varsayılan: 'base64')
+ * Parametreler:
+ * - text / url : QR koda dönüştürülecek metin (zorunlu)
+ * - size       : QR kod boyutu (varsayılan: 300)
+ * - format     : base64 | png | svg (varsayılan: base64)
+ * - margin     : Kenar boşluğu (varsayılan: 1)
+ * - color      : QR rengi (varsayılan: #000000)
+ * - background : Arkaplan rengi (varsayılan: #FFFFFF)
  */
 
 async function main(args) {
-  // CORS başlıkları DigitalOcean App Platform tarafından otomatik yönetildiği için
-  // burada manuel olarak eklemiyoruz, aksi takdirde "multiple values" hatası alınıyor.
-  const responseHeaders = {
-    'Content-Type': 'application/json'
+
+  // ✅ CORS headers (manuel eklenmeli)
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type'
   };
 
+  // ✅ Preflight (OPTIONS) isteğini yakala
+  if (args.__ow_method === 'options') {
+    return {
+      statusCode: 204,
+      headers: corsHeaders,
+      body: ''
+    };
+  }
+
   try {
-    // OPTIONS preflight istekleri platform tarafından karşılandığı için kod bloğu kaldırıldı.
-
-    // Parametreleri al
+    // Parametreler
     const text = args.text || args.url;
-    const size = args.size || 300;
+    const size = parseInt(args.size) || 300;
     const format = args.format || 'base64';
+    const margin = args.margin !== undefined ? parseInt(args.margin) : 1;
+    const errorCorrectionLevel =
+      ['L', 'M', 'Q', 'H'].includes(args.errorCorrectionLevel)
+        ? args.errorCorrectionLevel
+        : 'M';
 
-    // Metin kontrolü
+    // Zorunlu alan kontrolü
     if (!text) {
       return {
         statusCode: 400,
-        headers: responseHeaders,
+        headers: corsHeaders,
         body: {
           error: 'Lütfen "text" veya "url" parametresi gönderin',
           example: { text: 'https://digitalocean.com' }
@@ -36,10 +53,7 @@ async function main(args) {
       };
     }
 
-    // QR kod seçenekleri
-    const margin = args.margin !== undefined ? parseInt(args.margin) : 1;
-    const errorCorrectionLevel = ['L', 'M', 'Q', 'H'].includes(args.errorCorrectionLevel) ? args.errorCorrectionLevel : 'M';
-
+    // QR seçenekleri
     const options = {
       width: size,
       margin: margin,
@@ -50,53 +64,55 @@ async function main(args) {
       }
     };
 
-    let qrData;
-
-    // Format'a göre QR kod oluştur
+    // 🔁 Format’a göre çıktı
     switch (format) {
-      case 'base64':
-        qrData = await QRCode.toDataURL(text, options);
+
+      case 'base64': {
+        const qr = await QRCode.toDataURL(text, options);
         return {
           statusCode: 200,
-          headers: responseHeaders,
+          headers: corsHeaders,
           body: {
             success: true,
-            text: text,
             format: 'base64',
-            qrCode: qrData,
-            info: 'Base64 formatında - <img src="..." /> ile kullanabilirsiniz'
+            text: text,
+            qrCode: qr
           }
         };
+      }
 
-      case 'svg':
-        qrData = await QRCode.toString(text, { ...options, type: 'svg' });
+      case 'svg': {
+        const svg = await QRCode.toString(text, { ...options, type: 'svg' });
         return {
           statusCode: 200,
           headers: {
-            ...responseHeaders,
-            'Content-Type': 'text/plain'
+            ...corsHeaders,
+            'Content-Type': 'image/svg+xml'
           },
-          body: qrData
+          body: svg
         };
+      }
 
-      case 'png':
+      case 'png': {
         const buffer = await QRCode.toBuffer(text, options);
         return {
           statusCode: 200,
           headers: {
-            ...responseHeaders,
+            ...corsHeaders,
             'Content-Type': 'image/png'
           },
           body: buffer.toString('base64')
         };
+      }
 
       default:
         return {
           statusCode: 400,
-          headers: responseHeaders,
+          headers: corsHeaders,
           body: {
-            error: 'Geçersiz format. Kullanılabilir: base64, svg, png',
-            receivedFormat: format
+            error: 'Geçersiz format',
+            allowedFormats: ['base64', 'svg', 'png'],
+            received: format
           }
         };
     }
@@ -104,7 +120,7 @@ async function main(args) {
   } catch (error) {
     return {
       statusCode: 500,
-      headers: responseHeaders,
+      headers: corsHeaders,
       body: {
         error: 'QR kod oluşturulurken hata oluştu',
         details: error.message
